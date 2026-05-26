@@ -13,9 +13,9 @@ function formatTokens(n: number): string {
 }
 
 function formatCost(n: number): string {
-  if (n === 0) return '$0.00'
-  if (n < 0.01) return '<$0.01'
-  return '$' + n.toFixed(2)
+  if (n === 0) return '¥0.00'
+  if (n < 0.01) return '<¥0.01'
+  return '¥' + (n * 7.25).toFixed(2)
 }
 
 function cacheHitRate(d: { input_tokens: number; cache_read_tokens: number }): string {
