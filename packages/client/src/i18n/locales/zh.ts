@@ -621,6 +621,7 @@ export default {
     title: '模型',
     searchPlaceholder: '搜索模型...',
     addProvider: '添加 Provider',
+    editProvider: '编辑 Provider',
     providerType: 'Provider 类型',
     preset: '预设',
     custom: '自定义',

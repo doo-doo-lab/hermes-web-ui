@@ -12,6 +12,11 @@ import { fetchProviderModels } from '@/api/hermes/system'
 
 const { t } = useI18n()
 
+const props = defineProps<{
+  editingProvider?: AvailableModelGroup | null
+  providerKey?: string
+}>()
+
 const emit = defineEmits<{
   close: []
   saved: []
@@ -121,9 +126,27 @@ watch(providerType, () => {
   selectedPreset.value = null
 })
 
+const isEditing = computed(() => props.editingProvider != null)
+
 onMounted(() => {
   if (modelsStore.providers.length === 0) {
     modelsStore.fetchProviders()
+  }
+  // 编辑模式：预填数据
+  if (props.editingProvider && props.providerKey) {
+    const p = props.editingProvider
+    providerType.value = p.provider.startsWith('custom:') ? 'custom' : 'preset'
+    if (providerType.value === 'preset') {
+      selectedPreset.value = p.provider
+    }
+    formData.value = {
+      name: p.label,
+      base_url: p.base_url,
+      api_key: '',
+      model: p.models.length > 0 ? p.models[0] : '',
+      context_length: null,
+    }
+    modelOptions.value = p.models.map((m: string) => ({ label: m, value: m }))
   }
 })
 
@@ -196,20 +219,31 @@ async function handleSave() {
 
   loading.value = true
   try {
-    const providerKey = providerType.value === 'preset'
-      ? selectedPreset.value
-      : null
+    if (isEditing.value && props.providerKey) {
+      // 编辑模式：更新已有 Provider
+      await modelsStore.updateProvider(props.providerKey, {
+        name: providerType.value === 'custom' ? formData.value.name.trim() : undefined,
+        base_url: providerType.value === 'custom' ? formData.value.base_url.trim() : undefined,
+        api_key: formData.value.api_key.trim(),
+        model: formData.value.model,
+      })
+      message.success(t('common.saved'))
+    } else {
+      const providerKey = providerType.value === 'preset'
+        ? selectedPreset.value
+        : null
 
-    const contextLength = formData.value.context_length ?? undefined
-    await modelsStore.addProvider({
-      name: formData.value.name.trim(),
-      base_url: formData.value.base_url.trim(),
-      api_key: formData.value.api_key.trim(),
-      model: formData.value.model,
-      context_length: contextLength,
-      providerKey,
-    })
-    message.success(t('models.providerAdded'))
+      const contextLength = formData.value.context_length ?? undefined
+      await modelsStore.addProvider({
+        name: formData.value.name.trim(),
+        base_url: formData.value.base_url.trim(),
+        api_key: formData.value.api_key.trim(),
+        model: formData.value.model,
+        context_length: contextLength,
+        providerKey,
+      })
+      message.success(t('models.providerAdded'))
+    }
     emit('saved')
   } catch (e: any) {
     message.error(e.message)
@@ -313,13 +347,13 @@ function handleClose() {
   <NModal
     v-model:show="showModal"
     preset="card"
-    :title="t('models.addProvider')"
+    :title="isEditing ? t('models.editProvider') : t('models.addProvider')"
     :style="{ width: 'min(520px, calc(100vw - 32px))' }"
     :mask-closable="!loading && !showCodexLogin && !showNousLogin && !showCopilotLogin && !showXaiLogin"
     @after-leave="emit('close')"
   >
     <NForm label-placement="top">
-      <NFormItem :label="t('models.providerType')">
+      <NFormItem v-if="!isEditing" :label="t('models.providerType')">
         <div style="display: flex; gap: 12px">
           <NButton
             :type="providerType === 'preset' ? 'primary' : 'default'"
@@ -420,7 +454,7 @@ function handleClose() {
       <div class="modal-footer">
         <NButton @click="handleClose">{{ t('common.cancel') }}</NButton>
         <NButton type="primary" :loading="loading" @click="handleSave">
-          {{ t('common.add') }}
+          {{ isEditing ? t('common.save') : t('common.add') }}
         </NButton>
       </div>
     </template>

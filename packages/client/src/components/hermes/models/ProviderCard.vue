@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/hermes/app'
 import { useChatStore } from '@/stores/hermes/chat'
 import { checkCopilotToken, disableCopilot } from '@/api/hermes/copilot-auth'
 import { useI18n } from 'vue-i18n'
+import ProviderFormModal from './ProviderFormModal.vue'
 
 const props = defineProps<{ provider: AvailableModelGroup }>()
 
@@ -31,6 +32,7 @@ const aliasInput = ref('')
 const showVisibilityModal = ref(false)
 const visibilitySaving = ref(false)
 const selectedVisibleModels = ref<string[]>([])
+const showEditModal = ref(false)
 
 const sourceProvider = computed(() => modelsStore.allProviders.find(g => g.provider === props.provider.provider))
 const allModels = computed(() => props.provider.available_models?.length ? props.provider.available_models : (sourceProvider.value?.models?.length ? sourceProvider.value.models : props.provider.models))
@@ -105,6 +107,10 @@ function resetVisibility() {
 
 function clearVisibility() {
   selectedVisibleModels.value = []
+}
+
+function handleEdit() {
+  showEditModal.value = true
 }
 
 async function handleDelete() {
@@ -208,6 +214,7 @@ async function handleDelete() {
     <div class="card-actions">
       <NButton size="tiny" quaternary @click="showAliasListModal = true">{{ t('models.aliasManage') }}</NButton>
       <NButton size="tiny" quaternary @click="openVisibilityModal">{{ t('models.manageVisibleModels') }}</NButton>
+      <NButton size="tiny" quaternary @click="handleEdit">{{ t('common.edit') }}</NButton>
       <NButton size="tiny" quaternary type="error" :loading="deleting" @click="handleDelete">{{ t('common.delete') }}</NButton>
     </div>
 
@@ -301,6 +308,14 @@ async function handleDelete() {
       </div>
     </NModal>
   </div>
+
+  <ProviderFormModal
+    v-if="showEditModal"
+    :editing-provider="provider"
+    :provider-key="provider.provider"
+    @close="showEditModal = false"
+    @saved="showEditModal = false"
+  />
 </template>
 
 <style scoped lang="scss">
